@@ -1,0 +1,26 @@
+version: 3
+
+tasks:
+  setup:
+    desc: Downloads the required golang libraries
+    cmds:
+      - go mod download
+
+  build:
+    desc: Builds chia-sync-helper for the current platform
+    cmds:
+      - go build .
+
+  build-all:
+    desc: Builds chia-sync-helper for several platforms
+    cmds:
+      - mkdir -p bin
+      - GOOS=linux GOARCH=amd64   go build -o bin/chia-sync-helper_linux_amd64 .
+      - GOOS=linux GOARCH=arm64   go build -o bin/chia-sync-helper_linux_arm64 .
+      - GOOS=windows GOARCH=amd64 go build -o bin/chia-sync-helper_windows_amd64 .
+      - GOOS=darwin GOARCH=amd64  go build -o bin/chia-sync-helper_darwin_amd64 .
+
+  clean:
+    desc: Cleans up the Builds
+    cmds:
+      - rm -f bin/*
