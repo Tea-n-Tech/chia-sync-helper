@@ -12,6 +12,8 @@ tasks:
       - go build .
 
   build-all:
+    deps:
+      - clean
     desc: Builds chia-sync-helper for several platforms
     cmds:
       - mkdir -p bin
