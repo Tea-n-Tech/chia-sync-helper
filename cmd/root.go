@@ -16,16 +16,16 @@ const (
 	cliDescription = ("Chia sync helper identifies full node connections which are\n" +
 		"behind in sync height and thus prevent us from syncing ourselves.")
 	defaultHeightToleranceInBlocks = 5000
-	defaultRunEveryMinutes         = 0
+	defaultRunEverySeconds         = 0
 )
 
-type CliArgs struct {
-	HeightTolerance int64
-	RunEveryMins    int64
+type cliFlags struct {
+	heightTolerance int64
+	runEverySeconds int64
 }
 
 var (
-	cliArgs = CliArgs{}
+	cliArgs = &cliFlags{}
 )
 
 var RootCmd = &cobra.Command{
@@ -36,19 +36,20 @@ var RootCmd = &cobra.Command{
 		fmt.Printf(cliHeader + "\n")
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		chia.RunFullNodeCheck(cliArgs.RunEveryMins, cliArgs.HeightTolerance)
+		chia.RunFullNodeCheck(cliArgs.runEverySeconds, cliArgs.heightTolerance)
 	},
 }
 
 func init() {
 	flags := RootCmd.Flags()
-	cliArgs.HeightTolerance = *flags.Int64P("height-tolerance",
+	flags.Int64VarP(&cliArgs.heightTolerance,
+		"height-tolerance",
 		"t",
 		defaultHeightToleranceInBlocks,
 		("Every node whose height is lower than the current nodes height minus\n" +
 			"'heigh-tolerance' will be removed."))
-	cliArgs.RunEveryMins = *flags.Int64P("runs-every",
+	flags.Int64VarP(&cliArgs.runEverySeconds, "run-every-secs",
 		"r",
-		defaultRunEveryMinutes,
-		"Runs the check indefinitely at the specified time interval in minutes.")
+		defaultRunEverySeconds,
+		"Runs the check indefinitely at the specified time interval in seconds.")
 }

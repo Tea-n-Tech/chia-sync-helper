@@ -1,2 +1,8 @@
 # ignore the binaries directoy
 bin
+
+# ignore binary
+chia-sync-helper
+
+# ignore the cron script wip
+install_as_cron_job.sh

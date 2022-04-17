@@ -2,7 +2,6 @@ package chia
 
 import (
 	"fmt"
-	"log"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -10,33 +9,31 @@ import (
 )
 
 const (
-	defaultHeightToleranceInBlocks = 5000
-	defaultRunEveryMinutes         = 0
-	statusNotSynced                = "Not Synced"
-	statusSyncing                  = "Syncing"
+	statusNotSynced = "Not Synced"
+	statusSyncing   = "Syncing"
 )
 
-type FullNode struct {
+type fullNode struct {
 	Id     string
 	Height int64
 	Synced bool
 }
 
-func getConnectedNodes() ([]FullNode, error) {
+func getConnectedNodes() ([]fullNode, error) {
 
 	out, err := exec.Command("chia", "show", "-c").CombinedOutput()
 	if err != nil {
 		return nil, err
 	}
 
-	nodes := make([]FullNode, 0, 50)
+	nodes := make([]fullNode, 0, 50)
 	scanLineForNodeHeight := false
 	for _, line := range strings.Split(string(out), "\n") {
 
 		if strings.HasPrefix(line, "FULL_NODE") {
 			lineFields := strings.Fields(line)
 
-			nodes = append(nodes, FullNode{
+			nodes = append(nodes, fullNode{
 				Id: strings.TrimSuffix(lineFields[3], "..."),
 			})
 			scanLineForNodeHeight = true
@@ -45,15 +42,15 @@ func getConnectedNodes() ([]FullNode, error) {
 
 		if scanLineForNodeHeight {
 			lineFields := strings.Fields(line)
-			fullNode := nodes[len(nodes)-1]
+			node := nodes[len(nodes)-1]
 
 			height, err := strconv.ParseInt(lineFields[1], 10, 0)
 			if err != nil {
-				return nil, fmt.Errorf("Error when converting height of full node %s: %s\n", fullNode.Id, err)
+				return nil, fmt.Errorf("Error when converting height of full node %s: %s\n", node.Id, err)
 			}
 
-			fullNode.Height = height
-			nodes[len(nodes)-1] = fullNode
+			node.Height = height
+			nodes[len(nodes)-1] = node
 
 			scanLineForNodeHeight = !scanLineForNodeHeight
 		}
@@ -62,46 +59,46 @@ func getConnectedNodes() ([]FullNode, error) {
 	return nodes, nil
 }
 
-func getOwnNodeStatus() (FullNode, error) {
+func getOwnNodeStatus() (fullNode, error) {
 
 	out, err := exec.Command("chia", "show", "-s").CombinedOutput()
 	if err != nil {
-		log.Fatalln(err)
+		return fullNode{}, err
 	}
 
-	fullNode := FullNode{}
+	node := fullNode{}
 
 	for _, line := range strings.Split(string(out), "\n") {
 		if strings.HasPrefix(line, "Node ID") {
 			lineFields := strings.Fields(line)
-			fullNode.Id = lineFields[2]
+			node.Id = lineFields[2]
 		}
 
 		if strings.Contains(line, "Height") && strings.Contains(line, "Time") {
 			lineFields := strings.Fields(line)
 			height, err := strconv.ParseInt(lineFields[8], 10, 0)
 			if err != nil {
-				log.Fatalf("Error when converting height of full node %s: %s\n", fullNode.Id, err)
+				return fullNode{}, fmt.Errorf("Error when converting height of full node %s: %s", node.Id, err)
 			}
-			fullNode.Height = height
+			node.Height = height
 		}
 
 		if strings.Contains(line, "Current Blockchain Status:") {
-			fullNode.Synced = !strings.Contains(line, statusSyncing) && !strings.Contains(line, statusNotSynced)
+			node.Synced = !strings.Contains(line, statusSyncing) && !strings.Contains(line, statusNotSynced)
 		}
 	}
 
-	if len(fullNode.Id) == 0 {
-		return FullNode{}, fmt.Errorf("Full node is not up running.")
+	if len(node.Id) == 0 {
+		return fullNode{}, fmt.Errorf("Full node is not up running.")
 	}
 
-	return fullNode, nil
+	return node, nil
 }
 
 func filterNodesWhichAreFarBehind(
-	connectedNodes []FullNode, ownNode FullNode, heightTolerance int64,
-) []FullNode {
-	nodesToRemove := make([]FullNode, 0, 50)
+	connectedNodes []fullNode, ownNode fullNode, heightTolerance int64,
+) []fullNode {
+	nodesToRemove := make([]fullNode, 0, 50)
 	for _, node := range connectedNodes {
 		if node.Height < ownNode.Height-heightTolerance {
 			nodesToRemove = append(nodesToRemove, node)
@@ -110,33 +107,22 @@ func filterNodesWhichAreFarBehind(
 	return nodesToRemove
 }
 
-func getErrorLoggingFn(runIndefinitely bool) func(format string, a ...interface{}) {
-	if runIndefinitely {
-		return log.Fatalf
-	}
+func RunFullNodeCheck(runEverySeconds, heightTolerance int64) {
 
-	return func(format string, a ...interface{}) {
-		fmt.Printf(format, a...)
-	}
-}
+	runInfinitely := runEverySeconds != 0
 
-func RunFullNodeCheck(runEveryMins, heightTolerance int64) {
-
-	runIndefinitely := runEveryMins == 0
-
-	// we go fatal if we don't run indefinitely and trouble arises.
-	logErrorFn := getErrorLoggingFn(runIndefinitely)
-
-	for iRun := uint64(0); runIndefinitely && iRun < 1; iRun++ {
+	for iRun := uint64(0); runInfinitely || iRun < 1; iRun++ {
 		connectedNodes, err := getConnectedNodes()
 		if err != nil {
-			logErrorFn("Error when fetching connected nodes: %s\n", err)
+			fmt.Printf("Error when fetching connected nodes: %s\n", err)
+			continue
 		}
 		fmt.Printf("Found %d connected nodes\n", len(connectedNodes))
 
 		ownFullNode, err := getOwnNodeStatus()
 		if err != nil {
-			logErrorFn("Error when fetching own node status: %s\n", err)
+			fmt.Printf("Error when fetchincliArgs.runEverySeconds g own node status: %s\n", err)
+			continue
 		}
 		fmt.Printf("Own node status %+v\n", ownFullNode)
 
@@ -148,11 +134,12 @@ func RunFullNodeCheck(runEveryMins, heightTolerance int64) {
 			fmt.Printf("Removing node %s with height %d\n", node.Id, node.Height)
 			_, err := exec.Command("chia", "show", "-r", node.Id).CombinedOutput()
 			if err != nil {
-				logErrorFn("Error removing node '%s': %s", node.Id, err)
+				fmt.Printf("Error removing node '%s': %s", node.Id, err)
+				continue
 			}
 		}
 
-		time.Sleep(time.Duration(runEveryMins) * time.Minute)
+		time.Sleep(time.Duration(runEverySeconds) * time.Second)
 	}
 
 }
