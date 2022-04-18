@@ -138,8 +138,12 @@ func RunFullNodeCheck(runEverySeconds, heightTolerance int64) {
 		}
 		fmt.Printf("Own node status %+v\n", ownFullNode)
 
-		nodesToRemove := filterNodesWhichAreFarBehind(
+		nodesBehind := filterNodesWhichAreFarBehind(
 			connectedNodes, ownFullNode, heightTolerance)
+
+		nodesToRemove := decideWhichNodesToRemove(
+			int64(len(connectedNodes)), nodesBehind)
+
 		fmt.Printf("Removing %d nodes\n", len(nodesToRemove))
 
 		for _, node := range nodesToRemove {
