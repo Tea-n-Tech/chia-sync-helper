@@ -17,7 +17,7 @@ go build .
 The  you can simply run the command line tool with:
 
 ```bash
-./chia-sync-helper
+./chia-sync-helper --help
 ```
 
 [releases-link]: https://github.com/Tea-n-Tech/chia-sync-helper/releases
