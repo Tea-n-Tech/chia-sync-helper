@@ -32,26 +32,16 @@ connections as it seems.
 
 ## What does it do?
 
-This program removes full nodes which are behind in height and thus improves
-syncing.
+This program ensures that no more than half the full nodes we are connected to
+are behind us in sync height.
 
 Options:
 
 - specify a height tolerance to allow nodes being behind (default 5000 blocks)
 - run indefinitely every X seconds
 
-## Important Note
-
-This program is an expression of desperation, since the chia full node software
-is not helping me sufficiently.
-By design this software disconnects full nodes which are far behind.
-This is bad for the community since new full nodes will have a harder time
-syncing if everyone uses this software.
-Depending on how many people will use this software I will address this issue.
-
 ## Improvement Ideas
 
 - [ ] Installation script for cron job use-case
 - [ ] Use chia API instead of cli
-- [ ] Allow a healthy balance of nodes being behind and nodes being further than us
-- [ ] Disable the node removal if entirely synced
+- [x] Allow a healthy balance of nodes being behind and nodes being further than us
