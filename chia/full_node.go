@@ -107,6 +107,18 @@ func filterNodesWhichAreFarBehind(
 	return nodesToRemove
 }
 
+func decideWhichNodesToRemove(
+	nNodesTotal int64, nodesBehind []fullNode,
+) []fullNode {
+	nNodesBehind := int64(len(nodesBehind))
+
+	nNodesBehindAllowed := nNodesTotal / 2
+	if nNodesBehind > nNodesBehindAllowed {
+		return nodesBehind[:nNodesBehind-nNodesBehindAllowed]
+	}
+	return []fullNode{}
+}
+
 func RunFullNodeCheck(runEverySeconds, heightTolerance int64) {
 
 	runInfinitely := runEverySeconds != 0
